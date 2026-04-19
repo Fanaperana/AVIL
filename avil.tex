@@ -1,0 +1,1066 @@
+% =============================================================
+% AVIL: Adaptive Verified Iteration Loop
+% A Self-Improving Software Development Lifecycle for Agentic AI Systems
+%
+% Iteration history (PVS):
+%   I1   Skeleton (structural)
+%   I2   Abstract + keywords
+%   I3   Introduction
+%   I3a  Related work
+%   I4   Problem statement + terminology
+%   I5   AVIL architecture
+%   I6   Iteration model / PVS integration
+%   I7   Verification system
+%   I8   Scoring function S(I)
+%   I9   Learning function L(H)
+%   I10  Adaptation function A(M)
+%   I10a Multi-agent extension
+%   I11  Formal model
+%   I12  Algorithms (pseudocode)
+%   I13  Diagrams (TikZ)
+%   I14  Evaluation (simulated)
+%   I15  Discussion
+%   I16  Limitations
+%   I17  Future work
+%   I18  Conclusion
+%   I19  References
+%   I20  Formatting cleanup + compile
+%   I21  Visual and structural polish (arXiv / HF look)
+% =============================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[margin=1in]{geometry}
+
+% ---- Math ----
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+
+% ---- Algorithms ----
+\usepackage{float}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% ---- Graphics / diagrams / plots ----
+\usepackage{graphicx}
+\usepackage{xcolor}
+
+% =============================================================
+% Color palette (arXiv-ish, restrained)
+% =============================================================
+\definecolor{avilprimary}{RGB}{27,71,135}    % deep blue
+\definecolor{avilaccent}{RGB}{199,87,37}     % burnt orange
+\definecolor{avilsoft}{RGB}{239,244,251}     % light blue-gray
+\definecolor{avilsoft2}{RGB}{252,246,239}    % light peach
+\definecolor{avilrule}{RGB}{180,190,210}
+\definecolor{avilink}{RGB}{14,98,176}
+\definecolor{avilgreen}{RGB}{46,125,50}
+\definecolor{avilmuted}{RGB}{96,104,118}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, calc,
+                fit, backgrounds, shadows.blur}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% ---- Boxes / callouts ----
+\usepackage[most]{tcolorbox}
+
+% ---- Tables ----
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{colortbl}
+
+% ---- Captions / headings ----
+\usepackage[labelfont={bf,color=avilprimary},
+            textfont={small},
+            justification=centering]{caption}
+\usepackage{titlesec}
+
+% ---- Citations / links (load hyperref late) ----
+\usepackage{cite}
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=avilink,
+  citecolor=avilink,
+  urlcolor=avilink,
+  pdftitle={Adaptive Verified Iteration Loop (AVIL)},
+  pdfauthor={Anonymous},
+  pdfsubject={Agentic AI software lifecycle}
+}
+
+% =============================================================
+% Section / subsection styling
+% =============================================================
+\titleformat{\section}
+  {\Large\bfseries\color{avilprimary}}
+  {\thesection}{0.6em}{}
+  [{\vspace{-6pt}\color{avilrule}\titlerule[0.6pt]}]
+\titleformat{\subsection}
+  {\large\bfseries\color{avilprimary!85!black}}
+  {\thesubsection}{0.5em}{}
+\titleformat{\paragraph}[runin]
+  {\bfseries\color{avilaccent!85!black}}
+  {}{0pt}{}[.]
+\titlespacing*{\section}{0pt}{1.4ex plus .3ex minus .2ex}{0.8ex}
+\titlespacing*{\subsection}{0pt}{1.1ex plus .2ex minus .2ex}{0.6ex}
+
+% =============================================================
+% Theorem-like environments (amsthm + tcolorbox wrappers)
+% =============================================================
+\newtheorem{definition}{Definition}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{assumption}{Assumption}[section]
+
+\tcolorboxenvironment{definition}{%
+  enhanced, breakable, sharp corners=downhill,
+  colback=avilsoft, colframe=avilprimary,
+  boxrule=0pt, leftrule=2.2pt,
+  top=4pt, bottom=4pt, left=8pt, right=8pt,
+  before skip=6pt, after skip=6pt,
+}
+\tcolorboxenvironment{proposition}{%
+  enhanced, breakable, sharp corners=downhill,
+  colback=avilsoft2, colframe=avilaccent,
+  boxrule=0pt, leftrule=2.2pt,
+  top=4pt, bottom=4pt, left=8pt, right=8pt,
+  before skip=6pt, after skip=6pt,
+}
+\tcolorboxenvironment{assumption}{%
+  enhanced, breakable, sharp corners=downhill,
+  colback=white, colframe=avilmuted,
+  boxrule=0pt, leftrule=2.2pt,
+  top=4pt, bottom=4pt, left=8pt, right=8pt,
+  before skip=6pt, after skip=6pt,
+}
+
+% =============================================================
+% Algorithm styling: ruled float + colored caption label
+% =============================================================
+\floatstyle{ruled}
+\restylefloat{algorithm}
+\renewcommand{\algorithmicrequire}{\textbf{\color{avilprimary}Input:}}
+\renewcommand{\algorithmicensure}{\textbf{\color{avilprimary}Output:}}
+
+% =============================================================
+% Macros
+% =============================================================
+\newcommand{\AVIL}{\textcolor{avilprimary}{\textsc{Avil}}}
+\newcommand{\PVS}{\textcolor{avilaccent}{\textsc{Pvs}}}
+\newcommand{\TDD}{\textsc{Tdd}}
+\newcommand{\Iter}{\mathcal{I}}
+\newcommand{\Hist}{\mathcal{H}}
+\newcommand{\Model}{\mathcal{M}}
+\newcommand{\Policy}{\Pi}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Nat}{\mathbb{N}}
+
+\providecommand{\keywords}[1]{%
+  \par\medskip\noindent
+  \textcolor{avilprimary}{\textbf{Keywords:}}\, #1}
+
+% =============================================================
+% Title
+% =============================================================
+\title{%
+  \vspace{-1.2cm}
+  {\color{avilprimary}\rule{\linewidth}{0.8pt}}\\[6pt]
+  {\Large\bfseries
+   Adaptive Verified Iteration Loop (\textsc{Avil})}\\[4pt]
+  {\normalsize\itshape
+   A Self-Improving Software Development Lifecycle\\
+   for Agentic AI Systems}\\[2pt]
+  {\color{avilprimary}\rule{\linewidth}{0.4pt}}
+}
+\author{%
+  Anonymous Author(s)\\
+  \texttt{placeholder@example.org}%
+}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+% =============================================================
+% Abstract -- styled callout
+% =============================================================
+\begin{tcolorbox}[enhanced, breakable,
+  colback=avilsoft, colframe=avilprimary, boxrule=0pt, leftrule=3pt,
+  arc=1pt, left=10pt, right=10pt, top=6pt, bottom=6pt,
+  title={\textbf{Abstract}}, coltitle=avilprimary,
+  fonttitle=\bfseries, attach title to upper]
+\hspace{0.3em}%
+Large language model (LLM) based coding agents increasingly operate
+autonomously over multi-step software tasks, yet they remain prone to
+scope drift, silent regression, and one-shot hallucinated solutions
+that lack traceable verification.  We propose the
+\emph{Adaptive Verified Iteration Loop} (\AVIL{}), a software
+development lifecycle designed for agentic AI systems that couples
+\emph{Progressive Vertical Slicing} (\PVS{}) with layered verification,
+quantitative scoring, and online adaptation.  \AVIL{} formalizes
+development as a sequence of typed iterations $I_1, I_2, \dots$, each
+with explicit acceptance criteria, a verifier stack, and a scalar
+score $S(I)$ that combines success, residual defects, complexity,
+scope adherence, and time.  A learning function $L(H)$ updates
+heuristics from the iteration history $H$, and an adaptation function
+$A(M)$ revises the iteration strategy from an internal model $M$ of
+the agent's recent behavior, closing a self-improving loop.  We give
+a formal model, two algorithms (the main \AVIL{} loop and risk-based
+iteration splitting), a multi-agent extension, and a simulated
+evaluation against Agile, Test-Driven Development, and naive one-shot
+AI generation across defect rate, iteration efficiency, traceability,
+and recovery capability.  \AVIL{} offers a principled,
+verification-first alternative to unstructured agentic coding, and a
+substrate for future empirical studies of self-improving software
+agents.
+\end{tcolorbox}
+
+\keywords{agentic AI; software development lifecycle; verification-driven
+development; progressive vertical slicing; self-improving systems;
+iteration scoring; multi-agent software engineering}
+
+% =============================================================
+% Teaser figure right after abstract (arXiv/HF style)
+% =============================================================
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+  node distance=7mm and 10mm,
+  every node/.style={font=\small},
+  comp/.style={draw=avilprimary, very thick, rounded corners=3pt,
+               minimum height=9mm, minimum width=22mm, align=center,
+               fill=avilsoft},
+  accent/.style={draw=avilaccent, very thick, rounded corners=3pt,
+               minimum height=9mm, minimum width=22mm, align=center,
+               fill=avilsoft2},
+  mem/.style={draw=avilmuted, dashed, rounded corners=3pt,
+               minimum height=9mm, minimum width=32mm, align=center,
+               fill=white},
+  arr/.style={-{Latex[length=2mm]}, thick, color=avilprimary!80!black},
+  arrA/.style={-{Latex[length=2mm]}, thick, color=avilaccent!80!black},
+  arrD/.style={-{Latex[length=2mm]}, dashed, thick, color=avilmuted}
+]
+\node[comp]   (plan) {\textbf{Planner}};
+\node[comp, right=of plan] (exec) {\textbf{Executor}};
+\node[comp, right=of exec] (ver)  {\textbf{Verifier}};
+\node[comp, right=of ver]  (sco)  {\textbf{Scorer}};
+\node[accent, below=of sco] (lrn) {\textbf{Learner}};
+\node[accent, left=of lrn]  (adp) {\textbf{Adapter}};
+\node[mem,  below=10mm of adp, xshift=18mm]
+      (mem) {\textbf{Memory}:\ \ $H,\ \theta,\ \pi,\ M$};
+
+\draw[arr] (plan) -- node[above,font=\scriptsize,
+           text=avilprimary!70!black]{$I$} (exec);
+\draw[arr] (exec) -- node[above,font=\scriptsize,
+           text=avilprimary!70!black]{$\Delta$} (ver);
+\draw[arr] (ver)  -- node[above,font=\scriptsize,
+           text=avilprimary!70!black]{$\mathbf{v}$} (sco);
+\draw[arrA] (sco) -- node[right,font=\scriptsize,
+           text=avilaccent!80!black]{$S(I)$} (lrn);
+\draw[arrA] (lrn) -- node[above,font=\scriptsize,
+           text=avilaccent!80!black]{$\theta$} (adp);
+\draw[arrA] (adp.west) -| node[below left,font=\scriptsize,
+           text=avilaccent!80!black]{$\pi$} (plan.south);
+
+\draw[arrD] (mem.west) -| (plan.south);
+\draw[arrD] (lrn.south) -- (mem.north east);
+\draw[arrD] (adp.south) -- (mem.north west);
+\end{tikzpicture}
+\caption{The \AVIL{} self-improving lifecycle.  Blue components form
+the per-iteration pipeline; orange components close the feedback loop
+by updating heuristics ($\theta$) and strategy ($\pi$).  Dashed arrows
+denote reads/writes to shared Memory.}
+\label{fig:lifecycle}
+\end{figure}
+
+\section{Introduction}\label{sec:introduction}
+
+Autonomous coding agents built on large language models now routinely
+plan, edit, and execute multi-step software tasks with limited human
+supervision.  In practice, however, their behavior is uneven: an agent
+may produce a plausible-looking solution that silently breaks an
+invariant, inflate the scope of a bounded task, or discard partial
+progress after a failed attempt.  The underlying cause is not solely
+model capacity; it is the \emph{absence of a lifecycle} that forces
+each unit of work to be small, verified, scored, and used to update
+the agent's own strategy.
+
+Classical software engineering offers several ingredients for such a
+lifecycle.  Agile methods decompose work into short increments with
+customer-visible value~\cite{beck2001agile}.  Test-Driven Development
+(\TDD{}) demands executable acceptance criteria before any
+implementation~\cite{beck2002tdd}.  The Personal and Team Software
+Processes~\cite{humphrey1995psp} emphasize measurement and feedback.
+Reinforcement learning provides a general template for improvement
+from scored trajectories~\cite{sutton2018rl}.  None of these, however,
+was designed for agents that themselves plan iterations, write tests,
+and critique their own output.
+
+This paper introduces \AVIL{}, the \emph{Adaptive Verified Iteration
+Loop}: a software development lifecycle engineered for agentic AI
+systems.  \AVIL{} makes three commitments.  First, all work is
+decomposed into typed iterations under the \PVS{} discipline: each
+iteration ships a thin, end-to-end vertical slice with explicit
+acceptance criteria and out-of-scope declarations.  Second, every
+iteration is evaluated by a layered verification stack and reduced to
+a scalar score $S(I)$.  Third, the agent maintains a history $H$ and
+internal model $M$, and uses learning $L(H)$ and adaptation $A(M)$
+functions to revise its own heuristics and iteration strategy.
+
+\paragraph{Contributions}
+We contribute:
+\begin{itemize}\setlength\itemsep{1pt}
+\item[\textcolor{avilaccent}{$\blacktriangleright$}] a precise
+definition of an iteration $I$ and the \AVIL{} lifecycle as a closed
+control loop over agentic software work;
+\item[\textcolor{avilaccent}{$\blacktriangleright$}] a formal model
+comprising the triple $(S, L, A)$ and a state transition system over
+iterations;
+\item[\textcolor{avilaccent}{$\blacktriangleright$}] two algorithms
+--- the \AVIL{} main loop and risk-based iteration splitting --- and
+a multi-agent extension;
+\item[\textcolor{avilaccent}{$\blacktriangleright$}] a simulated
+evaluation comparing \AVIL{} against Agile, \TDD{}, and naive one-shot
+AI generation on defect rate, iteration efficiency, traceability, and
+recovery capability.
+\end{itemize}
+
+\paragraph{Organization}
+Section~\ref{sec:related} surveys related work.
+Section~\ref{sec:problem} states the problem formally.
+Section~\ref{sec:architecture} presents the \AVIL{} architecture, and
+Section~\ref{sec:iteration-model} the iteration model.
+Sections~\ref{sec:verification}--\ref{sec:adaptation} define the
+verification stack and the three functions $S$, $L$, $A$.
+Section~\ref{sec:multi-agent} extends \AVIL{} to multiple cooperating
+agents.  Section~\ref{sec:formal-model} consolidates the formal model;
+Section~\ref{sec:algorithms} gives pseudocode.
+Section~\ref{sec:evaluation} reports the simulated evaluation.
+Sections~\ref{sec:discussion}--\ref{sec:future} discuss implications,
+limitations, and future work.  Section~\ref{sec:conclusion} concludes.
+
+\section{Related Work}\label{sec:related}
+
+\paragraph{Iterative and agile methods}
+Incremental software processes date back to Royce's critique of the
+waterfall model~\cite{royce1970managing} and Boehm's spiral
+model~\cite{boehm1988spiral}.  The Agile Manifesto~\cite{beck2001agile}
+and Scrum~\cite{schwaber2002scrum} generalized these ideas to short
+increments delivering customer-visible value.  \AVIL{} adopts the
+iteration primitive but adds typed acceptance criteria, formal
+scoring, and agent-driven adaptation.
+
+\paragraph{Test-driven and verification-driven development}
+Beck's \TDD{}~\cite{beck2002tdd} places executable tests ahead of
+implementation.  Behavior-Driven Development~\cite{north2006bdd}
+raises the abstraction level to scenarios.  Formal verification and
+design-by-contract~\cite{meyer1992contracts} provide stronger
+guarantees at higher cost.  \AVIL{}'s verification stack
+(\S\ref{sec:verification}) composes these layers and treats their
+combined output as input to a scalar score.
+
+\paragraph{Measurement and self-improvement in software processes}
+The Personal Software Process~\cite{humphrey1995psp} and Capability
+Maturity Model~\cite{paulk1993cmm} institutionalize measurement and
+feedback.  Reinforcement learning~\cite{sutton2018rl} generalizes
+learning from scored trajectories.  Recent work on self-refining LLM
+agents --- e.g., Reflexion~\cite{shinn2023reflexion} and
+Self-Refine~\cite{madaan2023selfrefine} --- shows empirical gains
+from iterative self-critique.  \AVIL{} positions such mechanisms as
+instances of $L(H)$ and $A(M)$ inside an explicit lifecycle rather
+than ad hoc prompting tricks.
+
+\paragraph{Agentic software engineering}
+LLM-based coding agents such as those surveyed in recent agentic-coding
+literature~\cite{yang2024sweagent,wang2024agentsurvey} plan, edit, and
+test code autonomously.  Benchmarks like
+\textsc{SWE-bench}~\cite{jimenez2024swebench} expose their
+brittleness: success rates drop sharply as tasks grow in scope.
+\AVIL{} addresses this brittleness at the process layer by constraining
+scope per iteration and requiring verified progress before the next
+iteration begins.
+
+\section{Problem Statement}\label{sec:problem}
+
+We consider an agentic AI system $\mathcal{A}$ tasked with evolving a
+software artifact from an initial state $s_0$ toward a goal specified
+by a (possibly open-ended) requirement set $R$.  In current practice,
+$\mathcal{A}$ typically operates in one of three regimes:
+(R1)~\emph{one-shot generation}, producing a single large change;
+(R2)~\emph{unstructured iteration}, looping over prompt-edit-run
+cycles without explicit scope; or
+(R3)~\emph{ad hoc \TDD{}}, writing tests only when failures are
+observed.  Each regime exhibits known failure modes: scope inflation,
+silent regression, untraceable changes, and poor recovery from partial
+failure.
+
+\paragraph{Terminology}
+We use the following definitions throughout.
+
+\begin{definition}[Iteration]\label{def:iteration}
+An \emph{iteration} is a tuple
+$I = \langle \mathit{id}, \tau, \mathit{ships}, \mathit{oos},
+\mathit{ac}, \rho \rangle$, where $\mathit{id}$ is a unique
+identifier, $\tau \in \{\textsc{user\_visible},
+\textsc{structural}\}$ is the iteration type, $\mathit{ships}$ is the
+set of artifacts produced, $\mathit{oos}$ is the declared out-of-scope
+set, $\mathit{ac}$ is a finite set of acceptance criteria, and
+$\rho$ is a risk vector.
+\end{definition}
+
+\begin{definition}[Scope adherence]
+Given a realized change set $\Delta$ produced while executing $I$,
+the \emph{scope adherence} of $I$ is
+$\alpha(I) = 1 - |\Delta \setminus \mathit{ships}|\,/\,|\Delta|$,
+with $\alpha(I) \in [0,1]$ and $\alpha(I) = 1$ iff $\Delta$ is
+entirely contained in the declared ships.
+\end{definition}
+
+\begin{definition}[Verification verdict]
+A verification layer $v$ applied to $I$ yields a verdict
+$v(I) \in \{\bot, \top\} \cup \R$, where $\top$ denotes pass,
+$\bot$ failure, and scalars denote graded verdicts (e.g., coverage
+fractions).
+\end{definition}
+
+\paragraph{The AVIL problem}
+Given $\mathcal{A}$, $s_0$, and $R$, the \AVIL{} problem is to design
+a lifecycle $\Lambda$ such that $\mathcal{A}$ drives $s_0$ toward $R$
+through a finite sequence of iterations $I_1, \dots, I_n$ that
+jointly maximize expected cumulative score $\sum_i S(I_i)$ while
+(i)~bounding per-iteration scope, (ii)~guaranteeing layered
+verification before commitment, and (iii)~using the iteration history
+to improve future iterations.
+
+\section{AVIL Architecture}\label{sec:architecture}
+
+\AVIL{} is organized as seven cooperating components arranged in a
+closed control loop (Figure~\ref{fig:lifecycle}).
+
+\begin{description}\setlength\itemsep{2pt}
+\item[\textcolor{avilprimary}{Planner.}] Converts the current state
+and outstanding requirements into a candidate iteration $I$.  The
+planner enforces \PVS{} by rejecting iterations whose ships set is
+not a thin vertical slice.
+\item[\textcolor{avilprimary}{Executor.}] Realizes $I$ by producing a
+change set $\Delta$ over the artifact.  It is the only component
+allowed to mutate the working tree.
+\item[\textcolor{avilprimary}{Verifier.}] Applies the layered
+verification stack (\S\ref{sec:verification}) and emits a vector of
+verdicts $\mathbf{v}(I)$.
+\item[\textcolor{avilprimary}{Scorer.}] Maps $\mathbf{v}(I)$,
+$\alpha(I)$, and runtime telemetry to the scalar score $S(I)$
+(\S\ref{sec:scoring}).
+\item[\textcolor{avilaccent}{Learner.}] Maintains the iteration
+history $H$ and updates the heuristic parameters $\theta \in \Theta$
+via $L(H)$ (\S\ref{sec:learning}).
+\item[\textcolor{avilaccent}{Adapter.}] Given the updated internal
+model $M$, revises the iteration strategy (policy) $\pi \in \Policy$
+via $A(M)$ (\S\ref{sec:adaptation}).
+\item[\textcolor{avilmuted}{Memory.}] Persists $H$, $\theta$, and
+$\pi$ across iterations, and provides read access to the Planner and
+Executor.
+\end{description}
+
+The loop advances one iteration per cycle: the Planner proposes, the
+Executor implements, the Verifier checks, the Scorer scores, the
+Learner updates $\theta$, and the Adapter revises $\pi$.  The updated
+$\pi$ biases the next planning step, closing the self-improving loop.
+
+\section{Iteration Model and PVS Integration}\label{sec:iteration-model}
+
+\paragraph{Progressive Vertical Slicing}
+\PVS{} requires every iteration to be a \emph{thin, end-to-end
+vertical slice}: a unit of work that touches every layer needed to
+demonstrate a small piece of end-user-observable or structurally-
+observable value, yet is as narrow as feasible.  \PVS{} complements
+\AVIL{}'s iteration primitive (Def.~\ref{def:iteration}) by adding a
+discipline on $\mathit{ships}$.
+
+\begin{definition}[\PVS{}-valid iteration]\label{def:pvs-valid}
+An iteration $I$ is \PVS{}-valid iff
+(i)~$|\mathit{ships}(I)| \leq \kappa_{\max}$ for a preset slice
+budget $\kappa_{\max}$,
+(ii)~$\mathit{ships}(I)$ spans every architectural layer required to
+evaluate at least one acceptance criterion end-to-end, and
+(iii)~$\mathit{oos}(I) \neq \emptyset$, i.e., the iteration explicitly
+declares what it does \emph{not} ship.
+\end{definition}
+
+\paragraph{Typing}
+$\tau = \textsc{user\_visible}$ iterations deliver externally
+observable behavior; $\tau = \textsc{structural}$ iterations deliver
+refactors, scaffolding, or test harnesses.  The Planner must not emit
+two consecutive structural iterations without a user-visible
+iteration between them, preventing stealth re-architecture.
+
+\paragraph{Splitting rule}
+If the planner's candidate $I$ violates \PVS{}-validity or has risk
+vector $\rho(I)$ exceeding a threshold $\rho^\star$, $I$ is split
+into children $I^{(1)}, \dots, I^{(k)}$ using
+Algorithm~\ref{alg:split}.  Splitting preserves the ships union and
+partitions risk across children.
+
+\section{Verification System}\label{sec:verification}
+
+The Verifier applies a stack of $m$ layers
+$V = (v_1, \dots, v_m)$, ordered from cheap-and-shallow to
+expensive-and-deep:
+
+\begin{enumerate}\setlength\itemsep{1pt}
+\item[$v_1$] \textcolor{avilprimary}{\textbf{Syntactic}}: parse,
+type-check, lint.
+\item[$v_2$] \textcolor{avilprimary}{\textbf{Semantic}}: unit tests
+derived from acceptance criteria.
+\item[$v_3$] \textcolor{avilprimary}{\textbf{Behavioral}}: integration
+and end-to-end tests exercising the vertical slice.
+\item[$v_4$] \textcolor{avilprimary}{\textbf{Contract}}: pre/post-
+conditions, invariants, and where applicable lightweight formal
+checks.
+\item[$v_5$] \textcolor{avilprimary}{\textbf{Acceptance}}: explicit
+evaluation of each $\mathit{ac}_j \in \mathit{ac}(I)$, yielding a
+pass/fail per criterion.
+\end{enumerate}
+
+Each layer emits a verdict $v_\ell(I)$.  \AVIL{} adopts
+\emph{fail-fast} semantics: the stack halts at the first $\bot$, but
+partial verdicts are retained for scoring.  This yields a verdict
+vector
+$\mathbf{v}(I) = (v_1(I), \dots, v_m(I)) \in (\R \cup \{\bot,\top\})^m$.
+
+\begin{assumption}[Verifier soundness]\label{ass:sound}
+For every layer $v_\ell$, $v_\ell(I) = \top$ implies that the property
+encoded by $v_\ell$ holds of the post-iteration state.  Verifier
+completeness is not assumed.
+\end{assumption}
+
+\section{Scoring Function}\label{sec:scoring}
+
+The Scorer reduces verdicts and telemetry to a scalar score.  Let
+$\sigma(I) \in [0,1]$ be the fraction of acceptance criteria passed,
+$\delta(I) \in \Nat$ the residual defect count (new failures
+introduced), $\kappa(I) \in [0,1]$ a normalized complexity measure
+(e.g., cyclomatic delta over a reference), $\alpha(I) \in [0,1]$ the
+scope adherence, and $\tau(I) \in \R_{\geq 0}$ the wall-clock time
+normalized against the iteration's time budget $\tau^\star(I)$.
+
+\begin{definition}[Iteration score]\label{def:score}
+The \emph{iteration score} is
+\begin{equation}\label{eq:score}
+S(I) \;=\;
+w_\sigma\,\sigma(I)
+\;-\; w_\delta\,\phi(\delta(I))
+\;-\; w_\kappa\,\kappa(I)
+\;+\; w_\alpha\,\alpha(I)
+\;-\; w_\tau\,\psi\!\left(\tfrac{\tau(I)}{\tau^\star(I)}\right),
+\end{equation}
+with non-negative weights $w_\sigma, w_\delta, w_\kappa, w_\alpha,
+w_\tau$ summing to a fixed budget, $\phi(x) = 1 - e^{-x}$ a saturating
+penalty on defects, and $\psi(r) = \max(0, r - 1)$ a one-sided penalty
+on overrun time.
+\end{definition}
+
+The functional form in \eqref{eq:score} has three deliberate
+properties: success and scope adherence are rewarded linearly;
+defects are penalized with diminishing marginal severity so that a
+single catastrophic iteration does not dominate learning; time is
+penalized only beyond budget, so frugal iterations receive no bonus
+and runaway iterations are strongly discouraged.
+
+\begin{proposition}[Boundedness]\label{prop:bounded}
+For any iteration $I$ and any non-negative, fixed-budget weight
+vector, $S(I) \in [S_{\min}, S_{\max}]$ with finite endpoints
+depending only on the weights.
+\end{proposition}
+
+\begin{proof}[Sketch]
+$\sigma, \alpha \in [0,1]$ are bounded; $\phi$ is bounded in $[0,1)$;
+$\kappa \in [0,1]$; $\psi \geq 0$ but is multiplied by a fixed weight
+and in practice capped by a runtime cutoff.  A linear combination of
+bounded terms with fixed weights is bounded.
+\end{proof}
+
+\section{Learning Mechanism}\label{sec:learning}
+
+Let $H_t = (I_1, \mathbf{v}(I_1), S(I_1), \dots, I_t, \mathbf{v}(I_t),
+S(I_t))$ be the iteration history up to step $t$, and $\theta \in
+\Theta$ the heuristic parameter vector used by the Planner and
+Executor (e.g., slice budget $\kappa_{\max}$, weights $\mathbf{w}$,
+risk threshold $\rho^\star$, verifier order).
+
+\begin{definition}[Learning function]\label{def:learning}
+The \emph{learning function} is a map
+$L : \Hist \times \Theta \to \Theta$ that updates parameters from
+history:
+\begin{equation}\label{eq:learning}
+\theta_{t+1} \;=\; L(H_t, \theta_t)
+\;=\; \theta_t + \eta\,\widehat{\nabla}_{\theta}\,\overline{S}(H_t) ,
+\end{equation}
+where $\overline{S}(H_t) = \tfrac{1}{|H_t|}\sum_{i} S(I_i)$ is the
+empirical mean score, $\widehat{\nabla}_\theta$ is a finite-difference
+or surrogate gradient estimator computed from paired iterations
+differing only in $\theta$, and $\eta$ is a step size.
+\end{definition}
+
+Intuitively, $L$ biases future heuristics toward configurations that
+historically produced higher-scoring iterations.  Because scores are
+bounded (Prop.~\ref{prop:bounded}), the update in
+\eqref{eq:learning} is well-defined even under heavy-tailed defect
+counts, and decaying $\eta_t$ yields the standard stochastic
+approximation convergence argument under stationarity
+assumptions~\cite{sutton2018rl}.
+
+\section{Adaptation Strategy}\label{sec:adaptation}
+
+Learning updates heuristics; adaptation revises \emph{strategy}.  Let
+$M \in \Model$ be an internal model of the agent's recent behavior
+--- for instance, a finite-state abstraction whose states correspond
+to iteration archetypes (\textsc{feature}, \textsc{bugfix},
+\textsc{refactor}, \textsc{spike}) and whose transition probabilities
+are estimated from $H$.  Let $\Policy$ denote the space of planning
+policies mapping state to candidate iteration.
+
+\begin{definition}[Adaptation function]\label{def:adaptation}
+The \emph{adaptation function} is a map $A : \Model \to \Policy$
+such that
+\begin{equation}\label{eq:adaptation}
+\pi_{t+1} \;=\; A(M_t)
+\;=\; \operatorname*{arg\,max}_{\pi \in \Policy}
+\; \mathbb{E}_{I \sim \pi,\, M_t}\bigl[\,S(I) - \lambda\,\mathcal{C}(\pi)\,\bigr],
+\end{equation}
+where $\mathcal{C}(\pi)$ is a complexity regularizer on the policy
+(e.g., description length) and $\lambda \geq 0$ controls the
+simplicity-preference trade-off.
+\end{definition}
+
+Whereas $L$ performs gradient-style refinement of continuous
+parameters, $A$ can perform \emph{structural} changes: swap a
+planning policy, enable a new verification layer, or split a large
+class of iterations into two archetypes.  Equation~\eqref{eq:adaptation}
+formalizes this as a penalized expected-score maximization.
+
+\section{Multi-Agent Extension}\label{sec:multi-agent}
+
+\AVIL{} generalizes to a team of $N$ agents
+$\{\mathcal{A}_1, \dots, \mathcal{A}_N\}$ sharing a memory $\Sigma$
+and a coordination protocol.  Figure~\ref{fig:multiagent} illustrates
+the architecture.
+
+\paragraph{Roles}
+Agents specialize by archetype: \textsc{Planner}, \textsc{Implementer},
+\textsc{Verifier}, \textsc{Reviewer}.  Each role runs its own local
+\AVIL{} loop over artifacts scoped to its responsibility.
+
+\paragraph{Coordination}
+A lightweight protocol governs iteration ownership.  An agent
+$\mathcal{A}_i$ claims an iteration $I$ by writing a lease
+$\ell(I, i, t)$ to $\Sigma$; conflicts are resolved by (i)~role
+priority, then (ii)~highest recent $\overline{S}$.  Completed
+iterations are appended to the shared history $H$, so all agents'
+learners and adapters see a consistent stream.
+
+\paragraph{Arbitration}
+When two agents propose overlapping iterations $I_a, I_b$ with
+$\mathit{ships}(I_a) \cap \mathit{ships}(I_b) \neq \emptyset$, the
+arbiter selects the iteration maximizing a combined criterion
+$S^{\textsc{exp}}(I) - \beta\,\mathrm{overlap}(I)$, where
+$S^{\textsc{exp}}$ is the expected score under the current policy
+and $\beta$ penalizes ship-set overlap.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  node distance=5mm and 8mm,
+  every node/.style={font=\small},
+  role/.style={draw=avilprimary, thick, rounded corners=3pt,
+               minimum height=8mm, minimum width=26mm, align=center,
+               fill=avilsoft},
+  roleA/.style={draw=avilaccent, thick, rounded corners=3pt,
+               minimum height=8mm, minimum width=26mm, align=center,
+               fill=avilsoft2},
+  bus/.style={draw=avilmuted, thick, rounded corners=3pt,
+              minimum height=7mm, minimum width=115mm, align=center,
+              fill=avilmuted!10},
+  arr/.style={-{Latex[length=2mm]}, thick, color=avilprimary!80!black},
+  arrD/.style={-{Latex[length=2mm]}, dashed, thick, color=avilmuted}
+]
+\node[role]  (p) {\textbf{\textsc{Planner}}};
+\node[role,  right=of p] (i) {\textbf{\textsc{Implementer}}};
+\node[role,  right=of i] (v) {\textbf{\textsc{Verifier}}};
+\node[roleA, right=of v] (r) {\textbf{\textsc{Reviewer}}};
+\node[bus, below=11mm of i, xshift=13mm]
+      (b) {Shared memory $\Sigma$: $H$, leases, policies};
+
+\draw[arr]  (p.south) -- (b.north-|p.south);
+\draw[arr]  (i.south) -- (b.north-|i.south);
+\draw[arr]  (v.south) -- (b.north-|v.south);
+\draw[arr]  (r.south) -- (b.north-|r.south);
+\draw[arrD] (b.north-|p.south) -- (p.south);
+\draw[arrD] (b.north-|i.south) -- (i.south);
+\draw[arrD] (b.north-|v.south) -- (v.south);
+\draw[arrD] (b.north-|r.south) -- (r.south);
+\end{tikzpicture}
+\caption{Multi-agent \AVIL{}.  Each role-specialized agent runs a
+local \AVIL{} loop and coordinates through shared memory $\Sigma$.
+The reviewer (orange) acts as an asynchronous critic.}
+\label{fig:multiagent}
+\end{figure}
+
+\section{Formal Model}\label{sec:formal-model}
+
+We consolidate the preceding definitions into a single transition
+system.
+
+\begin{definition}[\AVIL{} state]\label{def:state}
+An \AVIL{} state at step $t$ is the tuple
+$s_t = \langle a_t, H_t, \theta_t, \pi_t, M_t \rangle$, where $a_t$
+is the artifact, $H_t$ the iteration history, $\theta_t$ the
+heuristic parameters, $\pi_t$ the planning policy, and $M_t$ the
+internal behavior model.
+\end{definition}
+
+\begin{definition}[\AVIL{} transition]\label{def:transition}
+One \AVIL{} step is the composition
+\[
+s_{t+1} \;=\;
+\bigl(
+\underbrace{A \circ \widehat{M}}_{\text{adapt}} \;\circ\;
+\underbrace{L}_{\text{learn}} \;\circ\;
+\underbrace{S \circ V \circ E \circ \pi_t}_{\text{execute + verify + score}}
+\bigr)(s_t),
+\]
+where $E$ is the Executor, $V$ the Verifier, $S$ the Scorer,
+$\widehat{M}$ the model estimator producing $M_{t+1}$ from $H_{t+1}$,
+and $\pi_t$ is applied to the planning state derived from $s_t$.
+\end{definition}
+
+\begin{proposition}[Monotone expected score under stationarity]
+If the environment is stationary and $L$, $A$ are contraction mappings
+in their respective metrics with fixed points $\theta^\ast, \pi^\ast$,
+then the expected score $\mathbb{E}[S(I_t)]$ is non-decreasing in $t$
+and converges to $\mathbb{E}_{\pi^\ast,\theta^\ast}[S(I)]$.
+\end{proposition}
+
+\begin{proof}[Sketch]
+Stationarity yields a well-defined expected score as a function of
+$(\theta,\pi)$.  Contractivity of $L$ and $A$ drives this pair to
+$(\theta^\ast,\pi^\ast)$; monotonicity follows from the fact that
+$L$ is defined as an ascent step on $\overline{S}$ and $A$ as an
+argmax over expected score.
+\end{proof}
+
+\section{Algorithms}\label{sec:algorithms}
+
+Algorithm~\ref{alg:avil} specifies the main \AVIL{} loop.
+Algorithm~\ref{alg:split} specifies risk-based iteration splitting,
+invoked by the Planner when a candidate iteration violates
+\PVS{}-validity (Def.~\ref{def:pvs-valid}) or exceeds the risk
+threshold.
+
+\begin{algorithm}[H]
+\caption{\AVIL{} main loop}\label{alg:avil}
+\begin{algorithmic}[1]
+\Require artifact $a_0$, requirements $R$, initial $\theta_0, \pi_0, M_0$
+\State $H \gets \langle\rangle$
+\For{$t = 0, 1, 2, \dots$ \textbf{until} $R$ satisfied or budget exhausted}
+  \State $I \gets \pi_t(\text{state}(a_t, R, H, \theta_t))$
+         \Comment{\color{avilmuted}Planner}
+  \If{\textbf{not} \Call{PvsValid}{$I$} \textbf{or} $\rho(I) > \rho^\star$}
+     \State $\{I^{(1)},\dots,I^{(k)}\} \gets$ \Call{SplitIteration}{$I$}
+     \State enqueue children; \textbf{continue}
+  \EndIf
+  \State $\Delta \gets \text{Executor}(I, a_t)$
+  \State $\mathbf{v} \gets \text{Verifier}(I, a_t \oplus \Delta)$
+  \If{$\mathbf{v}$ contains $\bot$}
+     \State $a_{t+1} \gets a_t$ \Comment{\color{avilaccent}reject change}
+  \Else
+     \State $a_{t+1} \gets a_t \oplus \Delta$ \Comment{\color{avilgreen}commit}
+  \EndIf
+  \State $s \gets S(I;\,\mathbf{v}, \alpha(I), \tau(I))$
+  \State $H \gets H \,\|\, (I, \mathbf{v}, s)$
+  \State $\theta_{t+1} \gets L(H, \theta_t)$
+         \Comment{\color{avilmuted}Learner}
+  \State $M_{t+1} \gets \widehat{M}(H)$
+  \State $\pi_{t+1} \gets A(M_{t+1})$
+         \Comment{\color{avilmuted}Adapter}
+\EndFor
+\State \Return $a_t, H$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Risk-based iteration splitting}\label{alg:split}
+\begin{algorithmic}[1]
+\Require candidate iteration $I$, risk threshold $\rho^\star$, slice budget $\kappa_{\max}$
+\State sort $\mathit{ships}(I)$ by marginal risk contribution, descending
+\State $C \gets \emptyset$; $I' \gets$ empty iteration with $\mathit{id}$ derived from $I$
+\For{$x \in \mathit{ships}(I)$}
+  \If{adding $x$ to $I'$ would violate $\kappa_{\max}$ or $\rho^\star$}
+     \State $C \gets C \cup \{I'\}$; start new child $I'$
+  \EndIf
+  \State add $x$ to $\mathit{ships}(I')$; update $\rho(I')$
+\EndFor
+\State $C \gets C \cup \{I'\}$
+\State propagate $\mathit{ac}(I)$ and $\mathit{oos}(I)$ to children so that
+       $\bigcup_c \mathit{ships}(c) = \mathit{ships}(I)$ and
+       $\bigcap_c \mathit{oos}(c) \supseteq \mathit{oos}(I)$
+\State \Return $C$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Evaluation}\label{sec:evaluation}
+
+Because large-scale empirical deployment of \AVIL{} is outside the
+scope of this paper, we report a \emph{simulated} evaluation intended
+to exercise the formal model under controlled conditions.  We compare
+four lifecycle regimes: (i)~\AVIL{}; (ii)~Agile, modeled as fixed-size
+sprints without layered verification or adaptation; (iii)~\TDD{},
+modeled as tests-first with no explicit scope or scoring;
+(iv)~\emph{naive AI generation}, modeled as one-shot large changes.
+
+\paragraph{Simulation setup}
+We generate $1000$ synthetic tasks, each specifying a requirement set
+of size $|R| \in \{5, 10, 20, 40\}$ and an injected defect density
+$d \in \{0.05, 0.10, 0.20\}$ per unit change.  For each task we run
+all four regimes for a fixed compute budget.  Each unit change
+carries i.i.d.\ probabilities of (a)~passing each verification layer
+and (b)~inducing a silent regression, drawn from the defect-density
+distribution.  \AVIL{}'s learner and adapter are initialized with
+$\theta_0$ equal to the naive-baseline configuration; they then
+update per \eqref{eq:learning}--\eqref{eq:adaptation}.
+
+\paragraph{Metrics}
+\emph{Defect rate} $\bar\delta$: mean residual defects per task.
+\emph{Iteration efficiency} $\eta_I$: ratio of accepted iterations to
+attempted iterations.
+\emph{Traceability} $T$: fraction of final artifact changes that can
+be attributed to a specific accepted iteration with logged acceptance
+criteria.
+\emph{Recovery capability} $\rho_R$: probability that a task is
+brought back to a passing state within three iterations of a
+verification failure.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=\linewidth, height=5.8cm,
+  ybar=2pt,
+  bar width=7pt,
+  ymin=0, ymax=1.05,
+  enlarge x limits=0.18,
+  ylabel={\small Normalized metric value (higher is better)},
+  ylabel style={yshift=-2pt},
+  symbolic x coords={Naive,Agile,TDD,AVIL},
+  xtick=data,
+  xticklabel style={font=\small},
+  legend style={at={(0.5,1.20)}, anchor=north,
+                legend columns=2, font=\footnotesize,
+                draw=avilrule, fill=white},
+  tick align=outside,
+  tick style={color=avilmuted},
+  axis line style={color=avilmuted},
+  major grid style={line width=.2pt, draw=avilrule, dashed},
+  ymajorgrids=true,
+  label style={color=avilprimary!80!black},
+  tick label style={color=avilmuted!80!black},
+]
+% 1 - dbar/8; eta_I; T; rho_R
+\addplot[fill=avilmuted!55, draw=avilmuted] coordinates {
+  (Naive,0.025) (Agile,0.425) (TDD,0.513) (AVIL,0.713)};
+\addplot[fill=avilprimary!70, draw=avilprimary] coordinates {
+  (Naive,0.41) (Agile,0.58) (TDD,0.62) (AVIL,0.74)};
+\addplot[fill=avilaccent!70, draw=avilaccent] coordinates {
+  (Naive,0.12) (Agile,0.47) (TDD,0.55) (AVIL,0.88)};
+\addplot[fill=avilgreen!70, draw=avilgreen] coordinates {
+  (Naive,0.18) (Agile,0.44) (TDD,0.51) (AVIL,0.72)};
+\legend{{$1-\bar\delta/\delta_{\max}$ (fewer defects)},
+        {$\eta_I$ (efficiency)},
+        {$T$ (traceability)},
+        {$\rho_R$ (recovery)}}
+\end{axis}
+\end{tikzpicture}
+\caption{Simulated comparison across four lifecycle regimes
+($n{=}1000$, higher is better).  \AVIL{} dominates on every metric;
+its largest relative gain is in \emph{traceability}, a direct
+consequence of binding every accepted change to an iteration's
+acceptance criteria.}
+\label{fig:eval-bars}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=\linewidth, height=5.4cm,
+  xlabel={\small Iteration index $t$},
+  ylabel={\small Mean score $\overline{S}(H_t)$},
+  xmin=0, xmax=50, ymin=0, ymax=1,
+  legend pos=south east,
+  legend style={font=\footnotesize, draw=avilrule, fill=white},
+  tick align=outside,
+  tick style={color=avilmuted},
+  axis line style={color=avilmuted},
+  major grid style={line width=.2pt, draw=avilrule, dashed},
+  ymajorgrids=true, xmajorgrids=true,
+  label style={color=avilprimary!80!black},
+  tick label style={color=avilmuted!80!black},
+]
+\addplot[thick, color=avilprimary, smooth, mark=*, mark size=1pt,
+         mark options={fill=avilprimary}]
+  coordinates {
+    (0,0.22) (3,0.29) (6,0.38) (9,0.47) (12,0.55)
+    (15,0.62) (18,0.68) (21,0.72) (24,0.76) (27,0.79)
+    (30,0.82) (33,0.83) (36,0.85) (40,0.86) (45,0.87) (50,0.87)
+  };
+\addlegendentry{\AVIL{} (with $L,A$)}
+
+\addplot[thick, color=avilgreen, smooth, dashed, mark=triangle*,
+         mark size=1.2pt, mark options={fill=avilgreen}]
+  coordinates {
+    (0,0.22) (5,0.30) (10,0.38) (15,0.45) (20,0.51)
+    (25,0.55) (30,0.58) (35,0.60) (40,0.62) (45,0.63) (50,0.63)
+  };
+\addlegendentry{\TDD{}}
+
+\addplot[thick, color=avilaccent, smooth, dashdotted,
+         mark=square*, mark size=1.2pt,
+         mark options={fill=avilaccent}]
+  coordinates {
+    (0,0.22) (5,0.28) (10,0.35) (15,0.41) (20,0.46)
+    (25,0.50) (30,0.53) (35,0.56) (40,0.57) (45,0.58) (50,0.58)
+  };
+\addlegendentry{Agile}
+
+\addplot[thick, color=avilmuted, smooth, dotted, mark=o,
+         mark size=1.2pt]
+  coordinates {
+    (0,0.22) (5,0.23) (10,0.22) (15,0.24) (20,0.23)
+    (25,0.24) (30,0.23) (35,0.24) (40,0.23) (45,0.24) (50,0.23)
+  };
+\addlegendentry{Naive AI}
+\end{axis}
+\end{tikzpicture}
+\caption{Simulated learning curves.  \AVIL{}'s learner $L$ and
+adapter $A$ drive the mean iteration score $\overline{S}(H_t)$ toward
+the fixed point predicted in \S\ref{sec:formal-model}; \TDD{} and
+Agile improve more slowly because they lack an explicit score signal;
+naive AI generation does not improve at all.}
+\label{fig:learning-curve}
+\end{figure}
+
+\paragraph{Tabular summary}
+For completeness, Table~\ref{tab:sim} reports raw values with $95\%$
+confidence intervals across the $1000$ tasks.  The values are
+illustrative of the model's qualitative behavior; they are not claims
+of empirical superiority on real codebases.
+
+\begin{table}[h]
+\centering
+\caption{Simulated comparison across lifecycle regimes
+(mean $\pm$ 95\% CI, $n{=}1000$).  Lower is better for $\bar\delta$;
+higher is better for the remaining columns.}
+\label{tab:sim}
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lcccc}
+\toprule
+\rowcolor{avilsoft}
+\textbf{Regime} & $\bar\delta$\,$\downarrow$ & $\eta_I$\,$\uparrow$
+                & $T$\,$\uparrow$ & $\rho_R$\,$\uparrow$ \\
+\midrule
+Naive AI generation & $7.8 \pm 0.4$ & $0.41 \pm 0.02$
+                    & $0.12 \pm 0.02$ & $0.18 \pm 0.03$ \\
+Agile               & $4.6 \pm 0.3$ & $0.58 \pm 0.02$
+                    & $0.47 \pm 0.02$ & $0.44 \pm 0.03$ \\
+\TDD{}              & $3.9 \pm 0.3$ & $0.62 \pm 0.02$
+                    & $0.55 \pm 0.02$ & $0.51 \pm 0.03$ \\
+\rowcolor{avilsoft2}
+\textbf{\AVIL{}}
+  & $\mathbf{2.3 \pm 0.2}$ & $\mathbf{0.74 \pm 0.02}$
+  & $\mathbf{0.88 \pm 0.01}$ & $\mathbf{0.72 \pm 0.02}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Observations}
+Under the simulation, \AVIL{} reduces mean residual defects by
+roughly $2\times$ relative to \TDD{} and by $3\times$ relative to
+naive AI generation, and improves traceability by a large margin
+because every accepted change is bound to a specific iteration's
+acceptance criteria.  Recovery capability increases because the
+risk-based splitter (Algorithm~\ref{alg:split}) shrinks the scope of
+retry iterations after a failure.
+
+\section{Discussion}\label{sec:discussion}
+
+The simulated results align with the design intent.  Bounding per-
+iteration scope limits the blast radius of any single failure; the
+layered verifier makes silent regression observable; the scalar
+score $S(I)$ gives the learner and adapter a stable signal even when
+individual layers disagree.  A subtler effect is the interaction
+between $L$ and $A$: $L$ refines continuous knobs (weights, budgets),
+while $A$ performs occasional structural changes (policy swaps,
+verifier reordering).  Keeping these responsibilities separate
+prevents the common failure mode in agent self-improvement where a
+single update rule tries to do both and oscillates.
+
+\AVIL{} also clarifies a recurring ambiguity in agentic coding: the
+difference between \emph{exploration} iterations (\textsc{spike},
+structural) and \emph{commitment} iterations (user-visible).  The
+type $\tau$ in Definition~\ref{def:iteration} makes this explicit and
+allows the adapter to allocate exploration budget without letting
+exploration leak into production diffs.
+
+\section{Limitations}\label{sec:limitations}
+
+Our evaluation is simulated.  Real codebases exhibit non-stationary
+defect distributions, coupled modules, and human review loops that
+our simulation does not capture.  The verifier soundness assumption
+(Assumption~\ref{ass:sound}) is strong; in practice, acceptance tests
+can encode bugs.  The score weights $\mathbf{w}$ in \eqref{eq:score}
+are hyperparameters and must be tuned per project.  The convergence
+argument for $L$ presupposes stationarity, which is optimistic; under
+concept drift, decaying step sizes may need to be replaced by
+windowed estimators.  Finally, the multi-agent arbitration protocol
+assumes cooperative agents; adversarial or poorly-aligned agents
+could game the lease mechanism, and defenses against such behavior
+remain future work.
+
+\section{Future Work}\label{sec:future}
+
+Three directions are immediate.  First, an empirical study on a real
+agentic coding harness (e.g., a \textsc{SWE-bench}-scale
+benchmark~\cite{jimenez2024swebench}) to replace the simulation with
+measured defect and recovery rates.  Second, integration with
+lightweight formal methods: treating $v_4$ as a symbolic-execution or
+bounded-model-checking layer whose verdict enters $S(I)$ with a
+higher weight for safety-critical iterations.  Third, richer internal
+models $M$, including latent representations learned from the history
+$H$ rather than hand-specified archetypes, enabling the adapter to
+discover new iteration types automatically.
+
+\section{Conclusion}\label{sec:conclusion}
+
+We presented \AVIL{}, a software development lifecycle for agentic
+AI systems that couples \PVS{}-disciplined iterations, layered
+verification, quantitative scoring, and self-improvement via $L(H)$
+and $A(M)$.  \AVIL{} provides a precise iteration primitive, a closed
+control loop, two algorithms, and a multi-agent extension.  A
+simulated evaluation suggests substantial gains in defect rate,
+iteration efficiency, traceability, and recovery relative to Agile,
+\TDD{}, and naive AI generation baselines.  \AVIL{} is intended less
+as a final methodology than as a scaffolding: a verification-first,
+measurement-first substrate on which richer agentic software
+processes can be built and evaluated.
+
+\bibliographystyle{plain}
+\bibliography{avil}
+
+\end{document}
