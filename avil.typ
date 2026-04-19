@@ -144,8 +144,6 @@
       ]
       #v(6pt)
       #text(size: 11pt)[A. F. Prince Ralambomanarivo]
-      #v(2pt)
-      #text(size: 9pt, fill: muted, style: "italic")[fanaperanaprince\@gmail.com]
     ]
     #v(8pt)
     #line(length: 100%, stroke: 0.4pt + primary)
