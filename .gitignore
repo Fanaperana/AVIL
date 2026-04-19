@@ -1,6 +1,7 @@
-# Build artifacts (keep the final PDF tracked; ignore everything else in build/)
+# Build artifacts (keep the final PDFs tracked; ignore everything else in build/)
 build/*
 !build/avil.pdf
+!build/avil-typst.pdf
 *.aux
 *.bbl
 *.blg
